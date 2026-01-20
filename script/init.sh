@@ -1,0 +1,112 @@
+#!/bin/bash
+set -e
+
+echo "================================================"
+echo " Isaac Lab Container Initialization"
+echo "================================================"
+
+# ----------------------------------------------------------------
+# 1. SSH
+# ----------------------------------------------------------------
+echo "[init] Setting up SSH..."
+mkdir -p /run/sshd
+ssh-keygen -A
+
+if [[ -n "$PUBLIC_KEY" ]]; then
+    echo "[init] Adding RunPod public key..."
+    
+    mkdir -p /root/.ssh
+    echo "$PUBLIC_KEY" >> /root/.ssh/authorized_keys
+    chmod 600 /root/.ssh/authorized_keys
+    chmod 700 /root/.ssh
+    
+    mkdir -p /home/stickyburn/.ssh
+    echo "$PUBLIC_KEY" >> /home/stickyburn/.ssh/authorized_keys
+    chmod 600 /home/stickyburn/.ssh/authorized_keys
+    chmod 700 /home/stickyburn/.ssh
+    chown -R stickyburn:stickyburn /home/stickyburn/.ssh
+fi
+
+/usr/sbin/sshd
+
+# ----------------------------------------------------------------
+# 2. WORKSPACE
+# ----------------------------------------------------------------
+echo "[init] Setting up workspace..."
+mkdir -p /workspace/{projects,data,models,logs,checkpoints,videos}
+mkdir -p /workspace/logs/tensorboard
+mkdir -p /workspace/logs/rsl_rl
+mkdir -p /workspace/logs/wandb
+
+if [ ! -L /opt/IsaacLab/logs ]; then
+    rm -rf /opt/IsaacLab/logs 2>/dev/null || true
+    ln -sf /workspace/logs/rsl_rl /opt/IsaacLab/logs
+fi
+
+chown -R stickyburn:stickyburn /workspace
+
+# ----------------------------------------------------------------
+# 3. PERMISSIONS
+# ----------------------------------------------------------------
+# Ownership is set at build time. Only re-apply if missing (e.g. volume mounts).
+if [ "$(stat -c '%U' /opt/IsaacLab 2>/dev/null)" != "stickyburn" ]; then
+    echo "[init] Setting permissions (this may take several minutes)..."
+    chown -R stickyburn:stickyburn /opt/isaaclab-env /opt/IsaacLab
+fi
+
+# ----------------------------------------------------------------
+# 4. KASMVNC
+# ----------------------------------------------------------------
+echo "[init] Starting KasmVNC..."
+
+rm -rf /tmp/.X*-lock /tmp/.X11-unix/X* 2>/dev/null || true
+
+mkdir -p /home/stickyburn/.vnc
+chown stickyburn:stickyburn /home/stickyburn/.vnc
+
+su - stickyburn -c "/usr/bin/kasmvncserver :1 -auth /home/stickyburn/.Xauthority" &
+
+sleep 3
+
+# ----------------------------------------------------------------
+# 5. TENSORBOARD
+# ----------------------------------------------------------------
+echo "[init] Starting TensorBoard..."
+/opt/isaaclab-env/bin/tensorboard \
+    --logdir=/workspace/logs \
+    --host=0.0.0.0 \
+    --port=6006 \
+    --reload_interval=30 \
+    > /workspace/logs/tensorboard/tensorboard.log 2>&1 &
+
+sleep 2
+if pgrep -f "tensorboard" > /dev/null; then
+    echo "[init] TensorBoard running on port 6006"
+else
+    echo "[init] WARNING: TensorBoard failed to start"
+fi
+
+# ----------------------------------------------------------------
+# 6. STATUS
+# ----------------------------------------------------------------
+echo ""
+echo "================================================"
+echo " Container Ready"
+echo "================================================"
+echo " ACCESS:"
+echo "   SSH:         ssh root@<IP> -p <PORT> -i <KEY>"
+echo "   Desktop:     http://<IP>:<6901> (pw: Test123!)"
+echo "   TensorBoard: http://<IP>:<6006>"
+echo ""
+echo " TRAINING (from /opt/IsaacLab):"
+echo "   Train A1 flat:    ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task Isaac-Velocity-Flat-Unitree-A1-v0 --headless"
+echo "   Train A1 rough:   ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task Isaac-Velocity-Rough-Unitree-A1-v0 --headless"
+echo "   Resume training:  ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --resume --load_run <RUN> --load_checkpoint <CKPT> --headless"
+echo "   Record video:     ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --headless --video"
+echo "   Livestream:       ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --livestream native"
+echo "                     Firefox -> http://localhost:8211/streaming/client"
+echo "================================================"
+
+sleep 2
+touch /home/stickyburn/.vnc/*.log 2>/dev/null || true
+tail -f /home/stickyburn/.vnc/*.log /workspace/logs/tensorboard/tensorboard.log 2>/dev/null || tail -f /dev/null

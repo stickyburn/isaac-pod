@@ -1,0 +1,55 @@
+# ============================================================
+# Zsh Configuration - Isaac Lab Container
+# ============================================================
+
+# Plugins (system-wide installation)
+source /etc/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+source /etc/zsh/plugins/zsh-z/zsh-z.plugin.zsh
+source /etc/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
+
+# History substring search keybindings
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+
+# Completion
+autoload -Uz compinit && compinit
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' +'l:|=* r:|=*'
+
+# User aliases (optional, per-user customization)
+[[ -f ~/.config/zsh/aliases ]] && source ~/.config/zsh/aliases
+
+# Options
+setopt AUTO_CD
+setopt COMPLETE_IN_WORD
+setopt SHARE_HISTORY
+setopt APPEND_HISTORY
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_IGNORE_SPACE
+
+# History
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+
+# VCS info for prompt
+autoload -Uz vcs_info
+precmd() {
+  precmd() {
+    vcs_info
+    echo
+  }
+}
+
+setopt prompt_subst
+zstyle ':vcs_info:git:*' formats '★ %b'
+
+# Prompt
+export RPROMPT='%F{183}%D{%L:%M}%f'
+export PROMPT='%F{183}%1d ${vcs_info_msg_0_}
+►%f '
+
+# Default working directory
+cd /opt/IsaacLab 2>/dev/null || true
