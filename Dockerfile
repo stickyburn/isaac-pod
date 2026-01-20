@@ -28,7 +28,7 @@ RUN pip install "isaacsim[all,extscache]==5.1.0" --extra-index-url=https://pypi.
 
 # Isaac Lab
 WORKDIR /opt
-RUN git clone --depth 1 --branch main https://github.com/isaac-sim/IsaacLab.git IsaacLab
+RUN git clone --depth 1 --branch v5.1.0 https://github.com/isaac-sim/IsaacLab.git IsaacLab
 ENV TERM=xterm
 RUN cd /opt/IsaacLab && echo "y" | ./isaaclab.sh --install
 
