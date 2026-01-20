@@ -51,6 +51,8 @@ chown -R stickyburn:stickyburn /workspace
 echo "[init] Starting KasmVNC..."
 
 rm -rf /tmp/.X*-lock /tmp/.X11-unix/X* 2>/dev/null || true
+mkdir -p /tmp/.X11-unix
+chmod 1777 /tmp/.X11-unix
 
 mkdir -p /home/stickyburn/.vnc
 chown stickyburn:stickyburn /home/stickyburn/.vnc
