@@ -4,6 +4,10 @@
 FROM nvidia/cuda:12.4.1-devel-ubuntu22.04 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Enable apt parallel downloads
+RUN echo 'Acquire::Queue-Mode "access";' > /etc/apt/apt.conf.d/99parallel \
+    && echo 'Acquire::http::Pipeline-Depth "10";' >> /etc/apt/apt.conf.d/99parallel
+
 # Build dependencies & Python 3.11
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget curl ca-certificates gnupg2 git cmake build-essential \
@@ -15,20 +19,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 python3.11-dev python3.11-venv python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Python virtual environment
+# Install uv (10-100x faster than pip)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Python virtual environment (--seed includes pip/setuptools)
 WORKDIR /opt
-RUN python3.11 -m venv /opt/isaaclab-env \
-    && /opt/isaaclab-env/bin/pip install --upgrade pip
+RUN uv venv --python python3.11 --seed /opt/isaaclab-env
 ENV VIRTUAL_ENV=/opt/isaaclab-env
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 # Isaac Sim
 ENV ACCEPT_EULA=Y PRIVACY_CONSENT=Y CUDA_HOME=/usr/local/cuda
-RUN pip install "isaacsim[all,extscache]==5.1.0" --extra-index-url=https://pypi.nvidia.com --no-cache-dir
+RUN uv pip install "isaacsim[all,extscache]==5.1.0" --extra-index-url=https://pypi.nvidia.com
 
 # Isaac Lab
 WORKDIR /opt
-RUN git clone --depth 1 --branch v5.1.0 https://github.com/isaac-sim/IsaacLab.git IsaacLab
+RUN git clone --depth 1 --branch v2.3.0 https://github.com/isaac-sim/IsaacLab.git IsaacLab
 ENV TERM=xterm
 RUN cd /opt/IsaacLab && echo "y" | ./isaaclab.sh --install
 
@@ -46,6 +53,10 @@ ENV LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}"
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=all
 ENV ACCEPT_EULA=Y PRIVACY_CONSENT=Y HEADLESS=1 ENABLE_CAMERAS=1
+
+# Enable apt parallel downloads
+RUN echo 'Acquire::Queue-Mode "access";' > /etc/apt/apt.conf.d/99parallel \
+    && echo 'Acquire::http::Pipeline-Depth "10";' >> /etc/apt/apt.conf.d/99parallel
 
 # System packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -81,8 +92,9 @@ RUN wget -q -O /tmp/kasmvncserver.deb \
 COPY --from=builder /opt/isaaclab-env /opt/isaaclab-env
 COPY --from=builder /opt/IsaacLab /opt/IsaacLab
 
-# Python tools
-RUN /opt/isaaclab-env/bin/pip install --no-cache-dir rerun-sdk tensorboard wandb
+# Install uv and Python tools
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && /root/.local/bin/uv pip install rerun-sdk tensorboard wandb
 
 # Used by various Isaac Lab scripts
 ENV ISAACLAB_PATH=/opt/IsaacLab
