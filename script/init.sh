@@ -46,16 +46,7 @@ fi
 chown -R stickyburn:stickyburn /workspace
 
 # ----------------------------------------------------------------
-# 3. PERMISSIONS
-# ----------------------------------------------------------------
-# Ownership is set at build time. Only re-apply if missing (e.g. volume mounts).
-if [ "$(stat -c '%U' /opt/IsaacLab 2>/dev/null)" != "stickyburn" ]; then
-    echo "[init] Setting permissions (this may take several minutes)..."
-    chown -R stickyburn:stickyburn /opt/isaaclab-env /opt/IsaacLab
-fi
-
-# ----------------------------------------------------------------
-# 4. KASMVNC
+# 3. KASMVNC
 # ----------------------------------------------------------------
 echo "[init] Starting KasmVNC..."
 
@@ -69,7 +60,7 @@ su - stickyburn -c "/usr/bin/kasmvncserver :1 -auth /home/stickyburn/.Xauthority
 sleep 3
 
 # ----------------------------------------------------------------
-# 5. TENSORBOARD
+# 4. TENSORBOARD
 # ----------------------------------------------------------------
 echo "[init] Starting TensorBoard..."
 /opt/isaaclab-env/bin/tensorboard \
@@ -87,14 +78,14 @@ else
 fi
 
 # ----------------------------------------------------------------
-# 6. STATUS
+# 5. STATUS
 # ----------------------------------------------------------------
 echo ""
 echo "================================================"
 echo " Container Ready"
 echo "================================================"
 echo " ACCESS:"
-echo "   SSH:         ssh root@<IP> -p <PORT> -i <KEY>"
+echo "   SSH:         ssh stickyburn@<IP> -p <PORT> -i <KEY>"
 echo "   Desktop:     http://<IP>:<6901> (pw: Test123!)"
 echo "   TensorBoard: http://<IP>:<6006>"
 echo ""
@@ -103,8 +94,8 @@ echo "   Train A1 flat:    ./isaaclab.sh -p scripts/reinforcement_learning/rsl_r
 echo "   Train A1 rough:   ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task Isaac-Velocity-Rough-Unitree-A1-v0 --headless"
 echo "   Resume training:  ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --resume --load_run <RUN> --load_checkpoint <CKPT> --headless"
 echo "   Record video:     ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --headless --video"
-echo "   Livestream:       ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --livestream native"
-echo "                     Firefox -> http://localhost:8211/streaming/client"
+echo "   Livestream:       ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --headless --livestream 2"
+echo "                     Firefox -> http://localhost:49100/streaming/webrtc-client"
 echo "================================================"
 
 sleep 2
