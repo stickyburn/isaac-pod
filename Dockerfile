@@ -19,7 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /opt
 RUN python3.11 -m venv /opt/isaaclab-env \
     && /opt/isaaclab-env/bin/pip install --upgrade pip
-ENV PATH="/opt/isaaclab-env/bin:${PATH}"
+ENV VIRTUAL_ENV=/opt/isaaclab-env
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 # Isaac Sim
 ENV ACCEPT_EULA=Y PRIVACY_CONSENT=Y CUDA_HOME=/usr/local/cuda
@@ -39,7 +40,8 @@ FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04 AS runtime
 # Environment
 ENV DEBIAN_FRONTEND=noninteractive
 ENV CUDA_HOME=/usr/local/cuda
-ENV PATH="${CUDA_HOME}/bin:/opt/isaaclab-env/bin:${PATH}"
+ENV VIRTUAL_ENV=/opt/isaaclab-env
+ENV PATH="${CUDA_HOME}/bin:${VIRTUAL_ENV}/bin:${PATH}"
 ENV LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}"
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=all
@@ -82,11 +84,8 @@ COPY --from=builder /opt/IsaacLab /opt/IsaacLab
 # Python tools
 RUN /opt/isaaclab-env/bin/pip install --no-cache-dir rerun-sdk tensorboard wandb
 
-# Python paths (required for isaaclab.sh to work)
+# Used by various Isaac Lab scripts
 ENV ISAACLAB_PATH=/opt/IsaacLab
-ENV ISAACSIM_PATH=/opt/isaaclab-env/lib/python3.11/site-packages/isaacsim
-ENV OMNIVERSE_PATH=/opt/isaaclab-env/lib/python3.11/site-packages/omni
-ENV PYTHONPATH="${ISAACSIM_PATH}:${OMNIVERSE_PATH}"
 
 # User & services configuration
 RUN useradd -m -s /bin/zsh stickyburn && \
@@ -119,12 +118,12 @@ COPY script/init.sh /opt/isaaclab-init/init.sh
 RUN chmod +x /opt/isaaclab-init/init.sh
 
 # Ports:
-#   6901 - KasmVNC desktop (HTTP)
-#   6006 - TensorBoard (HTTP)
-#   22   - SSH (TCP)
-#   9090 - Rerun viewer (HTTP)
-#   8211 - Isaac Sim livestream (HTTP)
-EXPOSE 6901 6006 22 9090 8211
+#   6901  - KasmVNC desktop (HTTP)
+#   6006  - TensorBoard (HTTP)
+#   22    - SSH (TCP)
+#   9090  - Rerun viewer (HTTP)
+#   49100 - Isaac Sim WebRTC livestream (HTTP)
+EXPOSE 6901 6006 22 9090 49100
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD pgrep -f "Xvnc" > /dev/null || exit 1
