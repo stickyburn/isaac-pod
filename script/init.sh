@@ -51,12 +51,20 @@ rm -rf /tmp/.X*-lock /tmp/.X11-unix/X* 2>/dev/null || true
 mkdir -p /tmp/.X11-unix
 chmod 1777 /tmp/.X11-unix
 
-mkdir -p /home/stickyburn/.vnc
-chown stickyburn:stickyburn /home/stickyburn/.vnc
-
-su - stickyburn -c "/usr/bin/kasmvncserver :1 -auth /home/stickyburn/.Xauthority" &
+/usr/bin/kasmvncserver :1 \
+    -geometry 1920x1080 \
+    -depth 24 \
+    -websocketPort 6901 \
+    &
 
 sleep 3
+
+if pgrep -f "Xvnc" > /dev/null; then
+    echo "[init] KasmVNC running on port 6901"
+else
+    echo "[init] WARNING: KasmVNC failed to start"
+    cat /root/.vnc/*.log 2>/dev/null || true
+fi
 
 # ----------------------------------------------------------------
 # 4. TENSORBOARD
