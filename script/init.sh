@@ -55,6 +55,7 @@ chmod 1777 /tmp/.X11-unix
     -geometry 1920x1080 \
     -depth 24 \
     -websocketPort 6901 \
+    -interface 0.0.0.0 \
     &
 
 sleep 3

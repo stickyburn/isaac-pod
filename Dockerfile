@@ -104,6 +104,8 @@ RUN chsh -s /bin/zsh root && \
         '  websocket_port: 6901' \
         '  ssl:' \
         '    require_ssl: false' \
+        '  udp:' \
+        '    public_ip: 127.0.0.1' \
         > /root/.vnc/kasmvnc.yaml && \
     echo '1' > /root/.vnc/.de-was-selected && \
     printf '%s\n%s\n' 'Test123!' 'Test123!' | vncpasswd -u root -w
