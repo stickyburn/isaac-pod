@@ -4,11 +4,9 @@
 FROM nvidia/cuda:12.4.1-devel-ubuntu22.04 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Enable apt parallel downloads
 RUN echo 'Acquire::Queue-Mode "access";' > /etc/apt/apt.conf.d/99parallel \
     && echo 'Acquire::http::Pipeline-Depth "10";' >> /etc/apt/apt.conf.d/99parallel
 
-# Build dependencies & Python 3.11
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget curl ca-certificates gnupg2 git cmake build-essential \
     ninja-build libgl1-mesa-dev libglu1-mesa-dev \
@@ -19,21 +17,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 python3.11-dev python3.11-venv python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv (10-100x faster than pip)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 
-# Python virtual environment (--seed includes pip/setuptools)
 WORKDIR /opt
 RUN uv venv --python python3.11 --seed /opt/isaaclab-env
 ENV VIRTUAL_ENV=/opt/isaaclab-env
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
-# Isaac Sim
 ENV ACCEPT_EULA=Y PRIVACY_CONSENT=Y CUDA_HOME=/usr/local/cuda
 RUN uv pip install "isaacsim[all,extscache]==5.1.0" --extra-index-url=https://pypi.nvidia.com
 
-# Isaac Lab
 WORKDIR /opt
 RUN git clone --depth 1 --branch v2.3.0 https://github.com/isaac-sim/IsaacLab.git IsaacLab
 ENV TERM=xterm
@@ -44,21 +38,19 @@ RUN cd /opt/IsaacLab && echo "y" | ./isaaclab.sh --install
 # ============================================================
 FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04 AS runtime
 
-# Environment
 ENV DEBIAN_FRONTEND=noninteractive
 ENV CUDA_HOME=/usr/local/cuda
 ENV VIRTUAL_ENV=/opt/isaaclab-env
-ENV PATH="${CUDA_HOME}/bin:${VIRTUAL_ENV}/bin:${PATH}"
+ENV PATH="/root/.local/bin:${CUDA_HOME}/bin:${VIRTUAL_ENV}/bin:${PATH}"
 ENV LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}"
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=all
 ENV ACCEPT_EULA=Y PRIVACY_CONSENT=Y HEADLESS=1 ENABLE_CAMERAS=1
+ENV ISAACLAB_PATH=/opt/IsaacLab
 
-# Enable apt parallel downloads
 RUN echo 'Acquire::Queue-Mode "access";' > /etc/apt/apt.conf.d/99parallel \
     && echo 'Acquire::http::Pipeline-Depth "10";' >> /etc/apt/apt.conf.d/99parallel
 
-# System packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget curl ca-certificates gnupg2 git sudo openssh-server zsh \
     xfce4 xfce4-terminal dbus-x11 xauth \
@@ -73,7 +65,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get install -y --no-install-recommends python3.11 python3.11-venv firefox-esr \
     && rm -rf /var/lib/apt/lists/*
 
-# Zsh plugins (system-wide)
+# Zsh plugins
 RUN mkdir -p /etc/zsh/plugins && \
     git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /etc/zsh/plugins/zsh-autosuggestions && \
     git clone --depth 1 https://github.com/agkozak/zsh-z /etc/zsh/plugins/zsh-z && \
@@ -92,49 +84,41 @@ RUN wget -q -O /tmp/kasmvncserver.deb \
 COPY --from=builder /opt/isaaclab-env /opt/isaaclab-env
 COPY --from=builder /opt/IsaacLab /opt/IsaacLab
 
-# Install uv and Python tools
+# Python tools + pin numpy
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && /root/.local/bin/uv pip install rerun-sdk tensorboard wandb
+    && /root/.local/bin/uv pip install rerun-sdk tensorboard wandb \
+    && /root/.local/bin/uv pip install "numpy==1.26.0"
 
-# Used by various Isaac Lab scripts
-ENV ISAACLAB_PATH=/opt/IsaacLab
-
-# User & services configuration
-RUN useradd -m -s /bin/zsh stickyburn && \
-    usermod -aG sudo,ssl-cert stickyburn && \
-    chsh -s /bin/zsh root && \
-    echo "stickyburn ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    echo "root:root" | chpasswd && \
+# Root user configuration
+RUN chsh -s /bin/zsh root && \
+    echo "root:Test123!" | chpasswd && \
     mkdir -p /root/.ssh /run/sshd && chmod 700 /root/.ssh && \
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
-    mkdir -p /home/stickyburn/.vnc && \
-    echo '#!/bin/bash\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nexec /usr/bin/startxfce4' > /home/stickyburn/.vnc/xstartup && \
-    chmod +x /home/stickyburn/.vnc/xstartup && \
-    touch /home/stickyburn/.Xauthority && \
-    echo 'desktop:\n  resolution:\n    width: 1920\n    height: 1080\nnetwork:\n  protocol: http\n  websocket_port: 6901\n  ssl:\n    require_ssl: false' > /home/stickyburn/.vnc/kasmvnc.yaml && \
-    echo '1' > /home/stickyburn/.vnc/.de-was-selected && \
-    printf '%s\n%s\n' 'Test123!' 'Test123!' | su stickyburn -c "vncpasswd -u stickyburn -w" && \
-    chown -R stickyburn:stickyburn /home/stickyburn/.vnc /home/stickyburn/.Xauthority && \
-    chown -R stickyburn:stickyburn /opt/isaaclab-env /opt/IsaacLab
+    mkdir -p /root/.vnc && \
+    printf '#!/bin/bash\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nexec /usr/bin/startxfce4\n' > /root/.vnc/xstartup && \
+    chmod +x /root/.vnc/xstartup && \
+    touch /root/.Xauthority && \
+    printf '%s\n' \
+        'network:' \
+        '  protocol: http' \
+        '  websocket_port: 6901' \
+        '  ssl:' \
+        '    require_ssl: false' \
+        > /root/.vnc/kasmvnc.yaml && \
+    echo '1' > /root/.vnc/.de-was-selected && \
+    printf '%s\n%s\n' 'Test123!' 'Test123!' | vncpasswd -u root -w
 
-# Zsh configuration for both users
+# Zsh config
 COPY script/zshrc /etc/zsh/zshrc.common
-RUN mkdir -p /root/.config/zsh /home/stickyburn/.config/zsh && \
-    touch /root/.config/zsh/aliases /home/stickyburn/.config/zsh/aliases && \
-    cp /etc/zsh/zshrc.common /root/.zshrc && \
-    cp /etc/zsh/zshrc.common /home/stickyburn/.zshrc && \
-    chown -R stickyburn:stickyburn /home/stickyburn/.config /home/stickyburn/.zshrc
+RUN mkdir -p /root/.config/zsh && \
+    touch /root/.config/zsh/aliases && \
+    cp /etc/zsh/zshrc.common /root/.zshrc
 
 # Init script
 COPY script/init.sh /opt/isaaclab-init/init.sh
 RUN chmod +x /opt/isaaclab-init/init.sh
 
-# Ports:
-#   6901  - KasmVNC desktop (HTTP)
-#   6006  - TensorBoard (HTTP)
-#   22    - SSH (TCP)
-#   9090  - Rerun viewer (HTTP)
-#   49100 - Isaac Sim WebRTC livestream (HTTP)
+# Ports: 6901 (VNC), 6006 (TensorBoard), 22 (SSH), 9090 (Rerun), 49100 (WebRTC)
 EXPOSE 6901 6006 22 9090 49100
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
