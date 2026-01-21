@@ -13,18 +13,11 @@ mkdir -p /run/sshd
 ssh-keygen -A
 
 if [[ -n "$PUBLIC_KEY" ]]; then
-    echo "[init] Adding RunPod public key..."
-    
+    echo "[init] Adding public key..."
     mkdir -p /root/.ssh
     echo "$PUBLIC_KEY" >> /root/.ssh/authorized_keys
     chmod 600 /root/.ssh/authorized_keys
     chmod 700 /root/.ssh
-    
-    mkdir -p /home/stickyburn/.ssh
-    echo "$PUBLIC_KEY" >> /home/stickyburn/.ssh/authorized_keys
-    chmod 600 /home/stickyburn/.ssh/authorized_keys
-    chmod 700 /home/stickyburn/.ssh
-    chown -R stickyburn:stickyburn /home/stickyburn/.ssh
 fi
 
 /usr/sbin/sshd
@@ -65,12 +58,13 @@ sleep 3
 # 4. TENSORBOARD
 # ----------------------------------------------------------------
 echo "[init] Starting TensorBoard..."
+mkdir -p /var/log/isaaclab
 /opt/isaaclab-env/bin/tensorboard \
     --logdir=/workspace/logs \
     --host=0.0.0.0 \
     --port=6006 \
     --reload_interval=30 \
-    > /workspace/logs/tensorboard/tensorboard.log 2>&1 &
+    > /var/log/isaaclab/tensorboard.log 2>&1 &
 
 sleep 2
 if pgrep -f "tensorboard" > /dev/null; then
@@ -87,19 +81,14 @@ echo "================================================"
 echo " Container Ready"
 echo "================================================"
 echo " ACCESS:"
-echo "   SSH:         ssh stickyburn@<IP> -p <PORT> -i <KEY>"
-echo "   Desktop:     http://<IP>:<6901> (pw: Test123!)"
-echo "   TensorBoard: http://<IP>:<6006>"
+echo "   SSH:         ssh root@<IP> -p <PORT>"
+echo "   Desktop:     http://<IP>:6901 (pw: Test123!)"
+echo "   TensorBoard: http://<IP>:6006"
 echo ""
-echo " TRAINING (from /opt/IsaacLab):"
-echo "   Train A1 flat:    ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task Isaac-Velocity-Flat-Unitree-A1-v0 --headless"
-echo "   Train A1 rough:   ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task Isaac-Velocity-Rough-Unitree-A1-v0 --headless"
-echo "   Resume training:  ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --resume --load_run <RUN> --load_checkpoint <CKPT> --headless"
-echo "   Record video:     ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --headless --video"
-echo "   Livestream:       ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --headless --livestream 2"
-echo "                     Firefox -> http://localhost:49100/streaming/webrtc-client"
+echo " TRAINING:"
+echo "   ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --headless"
+echo "   ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --headless --livestream 2"
+echo "   Firefox -> http://localhost:49100/streaming/webrtc-client"
 echo "================================================"
 
-sleep 2
-touch /home/stickyburn/.vnc/*.log 2>/dev/null || true
-tail -f /home/stickyburn/.vnc/*.log /workspace/logs/tensorboard/tensorboard.log 2>/dev/null || tail -f /dev/null
+tail -f /root/.vnc/*.log /var/log/isaaclab/tensorboard.log 2>/dev/null || tail -f /dev/null
