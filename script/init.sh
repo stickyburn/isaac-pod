@@ -26,17 +26,21 @@ fi
 # 2. WORKSPACE
 # ----------------------------------------------------------------
 echo "[init] Setting up workspace..."
-mkdir -p /workspace/{projects,data,models,logs,checkpoints,videos}
-mkdir -p /workspace/logs/tensorboard
-mkdir -p /workspace/logs/rsl_rl
-mkdir -p /workspace/logs/wandb
+STORAGE_DIR="/workspace/storage"
+
+mkdir -p "${STORAGE_DIR}/logs"
+mkdir -p "${STORAGE_DIR}/data_storage"
+mkdir -p "${STORAGE_DIR}/projects"
 
 if [ ! -L /opt/IsaacLab/logs ]; then
     rm -rf /opt/IsaacLab/logs 2>/dev/null || true
-    ln -sf /workspace/logs/rsl_rl /opt/IsaacLab/logs
+    ln -sf "${STORAGE_DIR}/logs" /opt/IsaacLab/logs
 fi
 
-chown -R stickyburn:stickyburn /workspace
+if [ ! -L /opt/IsaacLab/data_storage ]; then
+    rm -rf /opt/IsaacLab/data_storage 2>/dev/null || true
+    ln -sf "${STORAGE_DIR}/data_storage" /opt/IsaacLab/data_storage
+fi
 
 # ----------------------------------------------------------------
 # 3. KASMVNC
@@ -60,7 +64,7 @@ sleep 3
 echo "[init] Starting TensorBoard..."
 mkdir -p /var/log/isaaclab
 /opt/isaaclab-env/bin/tensorboard \
-    --logdir=/workspace/logs \
+    --logdir="${STORAGE_DIR}/logs" \
     --host=0.0.0.0 \
     --port=6006 \
     --reload_interval=30 \
