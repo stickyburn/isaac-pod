@@ -98,7 +98,6 @@ mkdir -p /var/log/isaaclab
     --host=0.0.0.0 \
     --port=6006 \
     --reload_interval=30 \
-    --sync=0 \
     > /var/log/isaaclab/tensorboard.log 2>&1 &
 
 sleep 2
