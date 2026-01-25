@@ -47,6 +47,7 @@ ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=all
 ENV ACCEPT_EULA=Y PRIVACY_CONSENT=Y HEADLESS=1 ENABLE_CAMERAS=1
 ENV ISAACLAB_PATH=/opt/IsaacLab
+ENV WANDB_DIR=/workspace/storage/logs/wandb
 
 RUN echo 'Acquire::Queue-Mode "access";' > /etc/apt/apt.conf.d/99parallel \
     && echo 'Acquire::http::Pipeline-Depth "10";' >> /etc/apt/apt.conf.d/99parallel
@@ -125,8 +126,8 @@ RUN mkdir -p /root/.config/zsh && \
 COPY script/init.sh /opt/isaaclab-init/init.sh
 RUN chmod +x /opt/isaaclab-init/init.sh
 
-# Ports: 6901 (VNC), 6006 (TensorBoard), 22 (SSH), 8080 (W&B), 49100 (WebRTC)
-EXPOSE 6901 6006 22 8080 49100
+# Ports: 6901 (VNC), 6006 (TensorBoard), 22 (SSH), 49100 (WebRTC)
+EXPOSE 6901 6006 22 49100
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD pgrep -f "Xvnc" > /dev/null || exit 1

@@ -31,6 +31,7 @@ STORAGE_DIR="/workspace/storage"
 mkdir -p "${STORAGE_DIR}/logs"
 mkdir -p "${STORAGE_DIR}/data_storage"
 mkdir -p "${STORAGE_DIR}/projects"
+mkdir -p "${STORAGE_DIR}/logs/wandb"
 
 if [ ! -L /opt/IsaacLab/logs ]; then
     rm -rf /opt/IsaacLab/logs 2>/dev/null || true
@@ -40,6 +41,11 @@ fi
 if [ ! -L /opt/IsaacLab/data_storage ]; then
     rm -rf /opt/IsaacLab/data_storage 2>/dev/null || true
     ln -sf "${STORAGE_DIR}/data_storage" /opt/IsaacLab/data_storage
+fi
+
+if [ ! -L /opt/IsaacLab/wandb ]; then
+    rm -rf /opt/IsaacLab/wandb 2>/dev/null || true
+    ln -sf "${STORAGE_DIR}/logs/wandb" /opt/IsaacLab/wandb
 fi
 
 # ----------------------------------------------------------------
@@ -75,23 +81,12 @@ if [[ -n "$WANDB_API_KEY" ]]; then
     echo "[init] WANDB_API_KEY detected, logging in..."
     /opt/isaaclab-env/bin/wandb login "$WANDB_API_KEY" --relogin
     echo "[init] W&B authenticated successfully"
+    echo "[init] W&B data directory: ${WANDB_DIR}"
+    echo "[init] View runs at: https://wandb.ai"
 else
     echo "[init] No WANDB_API_KEY found. Set it to enable W&B tracking."
     echo "[init] Example: docker run -e WANDB_API_KEY=your_key ..."
 fi
-
-# Optional: Start W&B local server (uncomment if needed)
-# if [[ -n "$WANDB_API_KEY" ]] && [[ "${WANDB_LOCAL_SERVER:-false}" == "true" ]]; then
-#     echo "[init] Starting W&B local server on port 8080..."
-#     /opt/isaaclab-env/bin/wandb server start --host 0.0.0.0 --port 8080 \
-#         > /var/log/isaaclab/wandb.log 2>&1 &
-#     sleep 2
-#     if pgrep -f "wandb.*server" > /dev/null; then
-#         echo "[init] W&B server running on port 8080"
-#     else
-#         echo "[init] WARNING: W&B server failed to start"
-#     fi
-# fi
 
 # ----------------------------------------------------------------
 # 5. TENSORBOARD
@@ -103,6 +98,7 @@ mkdir -p /var/log/isaaclab
     --host=0.0.0.0 \
     --port=6006 \
     --reload_interval=30 \
+    --sync=0 \
     > /var/log/isaaclab/tensorboard.log 2>&1 &
 
 sleep 2
