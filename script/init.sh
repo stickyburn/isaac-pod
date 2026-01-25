@@ -68,7 +68,33 @@ else
 fi
 
 # ----------------------------------------------------------------
-# 4. TENSORBOARD
+# 4. WEIGHTS & BIASES
+# ----------------------------------------------------------------
+echo "[init] Configuring Weights & Biases..."
+if [[ -n "$WANDB_API_KEY" ]]; then
+    echo "[init] WANDB_API_KEY detected, logging in..."
+    /opt/isaaclab-env/bin/wandb login "$WANDB_API_KEY" --relogin
+    echo "[init] W&B authenticated successfully"
+else
+    echo "[init] No WANDB_API_KEY found. Set it to enable W&B tracking."
+    echo "[init] Example: docker run -e WANDB_API_KEY=your_key ..."
+fi
+
+# Optional: Start W&B local server (uncomment if needed)
+# if [[ -n "$WANDB_API_KEY" ]] && [[ "${WANDB_LOCAL_SERVER:-false}" == "true" ]]; then
+#     echo "[init] Starting W&B local server on port 8080..."
+#     /opt/isaaclab-env/bin/wandb server start --host 0.0.0.0 --port 8080 \
+#         > /var/log/isaaclab/wandb.log 2>&1 &
+#     sleep 2
+#     if pgrep -f "wandb.*server" > /dev/null; then
+#         echo "[init] W&B server running on port 8080"
+#     else
+#         echo "[init] WARNING: W&B server failed to start"
+#     fi
+# fi
+
+# ----------------------------------------------------------------
+# 5. TENSORBOARD
 # ----------------------------------------------------------------
 echo "[init] Starting TensorBoard..."
 mkdir -p /var/log/isaaclab
@@ -87,7 +113,7 @@ else
 fi
 
 # ----------------------------------------------------------------
-# 5. STATUS
+# 6. STATUS
 # ----------------------------------------------------------------
 echo ""
 echo "================================================"
@@ -97,9 +123,14 @@ echo " ACCESS:"
 echo "   SSH:         ssh root@<IP> -p <PORT>"
 echo "   Desktop:     http://<IP>:6901 (pw: Test123!)"
 echo "   TensorBoard: http://<IP>:6006"
+if [[ -n "$WANDB_API_KEY" ]]; then
+    echo "   W&B:         https://wandb.ai (authenticated)"
+fi
 echo ""
 echo " TRAINING:"
 echo "   ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --headless"
+echo ""
+echo " STREAMING (WebRTC):"
 echo "   ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --headless --livestream 2"
 echo "   Firefox -> http://localhost:49100/streaming/webrtc-client"
 echo "================================================"

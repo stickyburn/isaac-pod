@@ -53,17 +53,20 @@ RUN echo 'Acquire::Queue-Mode "access";' > /etc/apt/apt.conf.d/99parallel \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget curl ca-certificates gnupg2 git sudo openssh-server zsh \
-    xfce4 xfce4-terminal dbus-x11 xauth \
+    xfce4-session xfce4-panel xfce4-terminal xfce4-settings \
+    thunar xfdesktop4 xfwm4 dbus-x11 xauth zenity \
     libgl1-mesa-glx libglu1-mesa libegl1-mesa libxcb1 libvulkan1 \
     software-properties-common \
     libunwind8 libxfont2 libxtst6 ssl-cert \
     libswitch-perl libyaml-tiny-perl libhash-merge-simple-perl \
-    liblist-moreutils-perl libtry-tiny-perl libdatetime-perl libdatetime-timezone-perl libgomp1 zenity \
+    liblist-moreutils-perl libtry-tiny-perl libdatetime-perl libdatetime-timezone-perl libgomp1 \
     && add-apt-repository -y ppa:mozillateam/ppa \
     && add-apt-repository -y ppa:deadsnakes/ppa \
     && apt-get update \
     && apt-get install -y --no-install-recommends python3.11 python3.11-venv firefox-esr \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Zsh plugins
 RUN mkdir -p /etc/zsh/plugins && \
@@ -78,7 +81,9 @@ RUN wget -q -O /tmp/kasmvncserver.deb \
     && apt-get update \
     && apt-get install -y --no-install-recommends /tmp/kasmvncserver.deb \
     && rm /tmp/kasmvncserver.deb \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy from builder
 COPY --from=builder /opt/isaaclab-env /opt/isaaclab-env
@@ -86,7 +91,7 @@ COPY --from=builder /opt/IsaacLab /opt/IsaacLab
 
 # Python tools + pin numpy
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && /root/.local/bin/uv pip install rerun-sdk tensorboard wandb \
+    && /root/.local/bin/uv pip install tensorboard wandb \
     && /root/.local/bin/uv pip install "numpy==1.26.0"
 
 # Root user configuration
@@ -120,8 +125,8 @@ RUN mkdir -p /root/.config/zsh && \
 COPY script/init.sh /opt/isaaclab-init/init.sh
 RUN chmod +x /opt/isaaclab-init/init.sh
 
-# Ports: 6901 (VNC), 6006 (TensorBoard), 22 (SSH), 9090 (Rerun), 49100 (WebRTC)
-EXPOSE 6901 6006 22 9090 49100
+# Ports: 6901 (VNC), 6006 (TensorBoard), 22 (SSH), 8080 (W&B), 49100 (WebRTC)
+EXPOSE 6901 6006 22 8080 49100
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD pgrep -f "Xvnc" > /dev/null || exit 1
