@@ -28,9 +28,14 @@ fi
 echo "[init] Setting up workspace..."
 STORAGE_DIR="/workspace/storage"
 
+mkdir -p "${STORAGE_DIR}"
+cd "${STORAGE_DIR}"
+echo "[init] Cloning isaac-pod-projects repo..."
+git clone --depth 1 https://github.com/stickyburn/isaac-pod-projects.git .
+
+echo "[init] Creating storage folders..."
 mkdir -p "${STORAGE_DIR}/logs"
 mkdir -p "${STORAGE_DIR}/data_storage"
-mkdir -p "${STORAGE_DIR}/projects"
 mkdir -p "${STORAGE_DIR}/logs/wandb"
 
 if [ ! -L /opt/IsaacLab/logs ]; then

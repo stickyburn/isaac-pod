@@ -53,7 +53,7 @@ RUN echo 'Acquire::Queue-Mode "access";' > /etc/apt/apt.conf.d/99parallel \
     && echo 'Acquire::http::Pipeline-Depth "10";' >> /etc/apt/apt.conf.d/99parallel
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget curl ca-certificates gnupg2 git sudo openssh-server zsh \
+    wget curl ca-certificates gnupg2 git sudo openssh-server zsh unzip \
     xfce4-session xfce4-panel xfce4-terminal xfce4-settings \
     thunar xfdesktop4 xfwm4 dbus-x11 xauth zenity \
     libgl1-mesa-glx libglu1-mesa libegl1-mesa libxcb1 libvulkan1 \
