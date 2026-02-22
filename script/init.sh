@@ -2,7 +2,7 @@
 set -e
 
 echo "================================================"
-echo " Isaac Lab Container Initialization"
+echo " Isaac Lab + Newton Initialization"
 echo "================================================"
 
 # ----------------------------------------------------------------
@@ -31,7 +31,7 @@ STORAGE_DIR="/workspace/storage"
 mkdir -p "${STORAGE_DIR}"
 cd "${STORAGE_DIR}"
 echo "[init] Cloning isaac-pod-projects repo..."
-git clone --depth 1 https://github.com/stickyburn/isaac-pod-projects.git .
+git clone --depth 1 https://github.com/stickyburn/isaac-pod-projects.git . || echo "[init] Repo already exists or clone failed, continuing..."
 
 echo "[init] Creating storage folders..."
 mkdir -p "${STORAGE_DIR}/logs"
@@ -54,28 +54,39 @@ if [ ! -L /opt/IsaacLab/wandb ]; then
 fi
 
 # ----------------------------------------------------------------
-# 3. KASMVNC
+# 3. VNC (x11vnc + noVNC + Fluxbox)
 # ----------------------------------------------------------------
-echo "[init] Starting KasmVNC..."
+echo "[init] Starting VNC server..."
 
+# Clean up any stale locks
 rm -rf /tmp/.X*-lock /tmp/.X11-unix/X* 2>/dev/null || true
 mkdir -p /tmp/.X11-unix
 chmod 1777 /tmp/.X11-unix
 
-/usr/bin/kasmvncserver :1 \
-    -geometry 1920x1080 \
-    -depth 24 \
-    -websocketPort 6901 \
-    -interface 0.0.0.0 \
-    &
+# Start Xvfb (virtual framebuffer)
+export DISPLAY=:1
+Xvfb :1 -screen 0 1920x1080x24 &
+sleep 2
 
-sleep 3
+# Start Fluxbox window manager
+fluxbox &
+sleep 1
 
-if pgrep -f "Xvnc" > /dev/null; then
-    echo "[init] KasmVNC running on port 6901"
+# Start x11vnc server (internal only, no external port)
+echo "[init] Starting x11vnc..."
+x11vnc -display :1 -rfbauth /root/.vnc/passwd -forever -shared -rfbport 5900 -localhost &
+sleep 2
+
+# Start noVNC web interface
+echo "[init] Starting noVNC..."
+/usr/share/novnc/utils/novnc_proxy --vnc localhost:5900 --listen 6901 &
+sleep 2
+
+if pgrep -f "Xvfb" > /dev/null; then
+    echo "[init] VNC stack running:"
+    echo "       - noVNC web: http://localhost:6901/vnc.html"
 else
-    echo "[init] WARNING: KasmVNC failed to start"
-    cat /root/.vnc/*.log 2>/dev/null || true
+    echo "[init] WARNING: VNC failed to start"
 fi
 
 # ----------------------------------------------------------------
@@ -117,11 +128,11 @@ fi
 # ----------------------------------------------------------------
 echo ""
 echo "================================================"
-echo " Container Ready"
+echo " Container Ready (Newton Backend)"
 echo "================================================"
 echo " ACCESS:"
 echo "   SSH:         ssh root@<IP> -p <PORT>"
-echo "   Desktop:     http://<IP>:6901 (pw: Test123!)"
+echo "   Desktop:     http://<IP>:6901/vnc.html"
 echo "   TensorBoard: http://<IP>:6006"
 if [[ -n "$WANDB_API_KEY" ]]; then
     echo "   W&B:         https://wandb.ai (authenticated)"
@@ -130,9 +141,9 @@ echo ""
 echo " TRAINING:"
 echo "   ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --headless"
 echo ""
-echo " STREAMING (WebRTC):"
-echo "   ./isaaclab.sh -p scripts/reinforcement_learning/rsl_rl/train.py --task <TASK> --headless --livestream 2"
-echo "   Firefox -> http://localhost:49100/streaming/webrtc-client"
+echo " NEWTON BACKEND:"
+echo "   No Isaac Sim required!"
 echo "================================================"
 
-tail -f /root/.vnc/*.log /var/log/isaaclab/tensorboard.log 2>/dev/null || tail -f /dev/null
+# Keep container running
+tail -f /dev/null

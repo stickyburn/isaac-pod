@@ -1,0 +1,33 @@
+services:
+  isaaclab:
+    image: stickyburn/isaac-pod:latest
+    container_name: isaaclab
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+      - PUBLIC_KEY=${PUBLIC_KEY:-}
+      - DISPLAY=:1
+    ports:
+      - "6901:6901"  # noVNC web interface
+      - "6006:6006"  # TensorBoard
+      - "2222:22"    # SSH
+    volumes:
+      - isaac-storage:/workspace/storage
+      - isaac-data:/workspace/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    shm_size: 15gb
+    stdin_open: true
+    tty: true
+
+volumes:
+  isaac-storage:
+  isaac-data:
