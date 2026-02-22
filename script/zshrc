@@ -1,6 +1,7 @@
 # ============================================================
 # Zsh Configuration
 # ============================================================
+export PATH="/root/.local/bin:$PATH"
 
 # Plugins (system-wide installation)
 source /etc/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
@@ -44,7 +45,7 @@ precmd() {
 }
 
 setopt prompt_subst
-zstyle ':vcs_info:git:*' formats '★ %b'
+zstyle ':vcs_info:git:*' formats ' %b'
 
 # Prompt
 export RPROMPT='%F{183}%D{%L:%M}%f'

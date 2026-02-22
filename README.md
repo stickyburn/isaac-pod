@@ -36,7 +36,6 @@ A lightweight, GPU-accelerated development environment for NVIDIA Isaac Lab with
 docker run -d \
   --gpus all \
   -p 6901:6901 \
-  -p 5900:5900 \
   -p 6006:6006 \
   -p 22:22 \
   -e WANDB_API_KEY=your_key_here \
