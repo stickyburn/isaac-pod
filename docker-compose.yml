@@ -8,11 +8,9 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=all
       - WANDB_API_KEY=${WANDB_API_KEY:-}
       - PUBLIC_KEY=${PUBLIC_KEY:-}
-      - DISPLAY=:1
     ports:
-      - "6901:6901"  # noVNC web interface
-      - "6006:6006"  # TensorBoard
       - "2222:22"    # SSH
+      - "6901:6901"  # noVNC
     volumes:
       - isaac-storage:/workspace/storage
       - isaac-data:/workspace/data
