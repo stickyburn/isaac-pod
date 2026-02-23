@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+export PATH="/opt/conda/bin:${PATH}"
+export CONDA_PREFIX=/opt/conda
+
 # SSH
 mkdir -p /run/sshd
 ssh-keygen -A
@@ -42,7 +45,6 @@ if [[ -n "$WANDB_API_KEY" ]]; then
     wandb login "$WANDB_API_KEY" --relogin >/dev/null 2>&1
 fi
 
-# STATUS
 echo ""
 echo "================================================"
 echo " Isaac Lab + Newton"
