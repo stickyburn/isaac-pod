@@ -1,0 +1,38 @@
+FROM python:3.10-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Install minimal dependencies for IsaacLab development
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PyTorch (CPU-only for dev environment)
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Clone IsaacLab (feature/newton branch)
+ENV ISAACLAB_PATH=/opt/IsaacLab
+RUN git clone --depth 1 --branch feature/newton https://github.com/isaac-sim/IsaacLab.git ${ISAACLAB_PATH}
+
+# Install IsaacLab using its installer script
+WORKDIR ${ISAACLAB_PATH}
+# Skip the prompt by using echo or modifying the script behavior
+RUN bash -c './isaaclab.sh -i || true' && \
+    pip cache purge
+
+# Install common dev tools
+RUN pip install --no-cache-dir \
+    ruff \
+    basedpyright \
+    jupyter \
+    ipykernel
+
+# Set up workspace
+WORKDIR /workspace
+# Add IsaacLab source to PYTHONPATH for imports and intellisense
+# Note: Setting PYTHONPATH in two steps to avoid undefined variable warning
+ENV PYTHONPATH="${ISAACLAB_PATH}"
+ENV PYTHONPATH="${ISAACLAB_PATH}/source/isaaclab:${PYTHONPATH}"
+
+CMD ["sleep", "infinity"]
