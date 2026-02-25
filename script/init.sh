@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 set -e
 
 export PATH="/opt/conda/bin:${PATH}"
@@ -17,7 +17,7 @@ fi
 
 /usr/sbin/sshd
 
-# WORKSPACE
+# workspace
 STORAGE_DIR="/workspace/storage"
 mkdir -p "${STORAGE_DIR}"
 cd "${STORAGE_DIR}"
