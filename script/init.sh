@@ -21,7 +21,7 @@ fi
 STORAGE_DIR="/workspace/storage"
 mkdir -p "${STORAGE_DIR}"
 cd "${STORAGE_DIR}"
-git clone --depth 1 https://github.com/stickyburn/isaac-pod-projects.git . 2>/dev/null || true
+git clone --depth 1 https://github.com/stickyburn/auto-shelf-sim.git . 2>/dev/null || true
 
 mkdir -p "${STORAGE_DIR}/logs" "${STORAGE_DIR}/data_storage" "${STORAGE_DIR}/logs/wandb"
 
@@ -50,9 +50,9 @@ echo "================================================"
 echo " Isaac Lab + Newton"
 echo "================================================"
 echo " SSH:  ssh root@<IP> -p 2222"
-echo " VNC:  Run 'start-vnc.sh' then http://<IP>:6901/vnc.html"
+echo " VNC:  run 'start-vnc.sh' then http://<IP>:6901/vnc.html"
 if [[ -n "$WANDB_API_KEY" ]]; then
-    echo " W&B:  https://wandb.ai"
+    echo " W&B active at:  https://wandb.ai"
 fi
 echo "================================================"
 
