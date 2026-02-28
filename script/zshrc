@@ -1,5 +1,8 @@
 export PATH="/root/.local/bin:$PATH"
 
+# init conda env
+source /opt/conda/etc/profile.d/conda.sh 2>/dev/null && conda activate base 2>/dev/null || true
+
 # zsh plugins
 source /etc/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 source /etc/zsh/plugins/zsh-z/zsh-z.plugin.zsh
@@ -44,5 +47,3 @@ zstyle ':vcs_info:git:*' formats ' %b'
 export RPROMPT='%F{183}%D{%L:%M}%f'
 export PROMPT='%F{183}%1d ${vcs_info_msg_0_}
 ►%f '
-
-cd /opt/IsaacLab 2>/dev/null || true

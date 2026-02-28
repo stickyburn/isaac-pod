@@ -1,9 +1,6 @@
 #!/bin/zsh
 set -e
 
-export PATH="/opt/conda/bin:${PATH}"
-export CONDA_PREFIX=/opt/conda
-
 # SSH
 mkdir -p /run/sshd
 ssh-keygen -A

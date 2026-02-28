@@ -30,6 +30,7 @@ RUN pip install --no-cache-dir \
 
 # Set up workspace
 WORKDIR /workspace
+
 # Add IsaacLab source to PYTHONPATH for imports and intellisense
 # Note: Setting PYTHONPATH in two steps to avoid undefined variable warning
 ENV PYTHONPATH="${ISAACLAB_PATH}"
